@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Fortnite Pirate Token Chest & Cannon Tracker</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Luckiest Guy & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Luckiest+Guy&display=swap" rel="stylesheet">
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        fortnite: {
+                            dark: '#0a0d14',
+                            card: '#131824',
+                            purple: '#a855f7',
+                            blue: '#3b82f6',
+                            orange: '#f97316',
+                            steel: '#64748b',
+                            gold: '#eab308'
+                        }
+                    },
+                    fontFamily: {
+                        heading: ['"Luckiest Guy"', 'cursive'],
+                        sans: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #0a0d14;
+            background-image: 
+                radial-gradient(circle at 50% 0%, rgba(168, 85, 247, 0.12), transparent 60%),
+                radial-gradient(circle at 80% 80%, rgba(59, 130, 246, 0.08), transparent 50%),
+                radial-gradient(circle at 20% 60%, rgba(249, 115, 22, 0.08), transparent 50%);
+            color: #f8fafc;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        .gold-glow { text-shadow: 0 0 15px rgba(234, 179, 8, 0.6); }
+        .cyan-glow { text-shadow: 0 0 15px rgba(59, 130, 246, 0.6); }
+
+        .btn-tap {
+            transition: transform 0.08s ease, filter 0.1s ease;
+        }
+        .btn-tap:active {
+            transform: scale(0.92);
+            filter: brightness(1.25);
+        }
+
+        .chest-card {
+            background: linear-gradient(145deg, rgba(19, 24, 36, 0.95) 0%, rgba(13, 16, 25, 0.98) 100%);
+            backdrop-filter: blur(10px);
+        }
+
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: rgba(10, 13, 20, 0.5); }
+        ::-webkit-scrollbar-thumb { background: #263147; border-radius: 4px; }
+    </style>
+</head>
+<body class="min-h-screen pb-12 font-sans flex flex-col justify-between">
+
+    <div class="max-w-md mx-auto w-full px-4 pt-3">
+        
+        <!-- Header & Language Switcher -->
+        <div class="flex justify-between items-center mb-2">
+            <div class="inline-flex items-center px-2.5 py-1 rounded-full bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 text-xs font-semibold">
+                <i class="fa-solid fa-skull-crossbones mr-1.5"></i> Fortnite x Pirati
+            </div>
+
+            <!-- Language Selector Dropdown -->
+            <div class="relative">
+                <select id="lang-select" onchange="changeLanguage(this.value)" class="bg-slate-900 text-slate-200 border border-slate-700 rounded-lg text-xs px-2.5 py-1.5 font-semibold focus:outline-none focus:border-yellow-500 cursor-pointer">
+                    <option value="it">🇮🇹 Italiano</option>
+                    <option value="en">🇬🇧 English</option>
+                    <option value="fr">🇫🇷 Français</option>
+                    <option value="de">🇩🇪 Deutsch</option>
+                    <option value="es">🇪🇸 Español</option>
+                    <option value="ru">🇷🇺 Русский</option>
+                </select>
+            </div>
+        </div>
+
+        <header class="text-center my-3">
+            <h1 id="txt-title" class="font-heading text-3xl sm:text-4xl text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-amber-200 to-yellow-500 tracking-wide gold-glow">
+                GETTONE PIRATA
+            </h1>
+            <p id="txt-subtitle" class="text-xs text-slate-400 mt-1">Tracciamento aperture & Probabilità indipendenti</p>
+        </header>
+
+        <!-- Dashboard Statistiche Principali -->
+        <div class="chest-card rounded-2xl p-5 mb-5 border border-slate-800 shadow-2xl relative overflow-hidden">
+            <div class="absolute -right-6 -bottom-6 text-yellow-500/5 text-9xl font-heading pointer-events-none">
+                <i class="fa-solid fa-coins"></i>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <!-- Totale Casse / Cannoni -->
+                <div class="flex flex-col justify-center items-center p-3 rounded-xl bg-slate-950/70 border border-slate-800">
+                    <span id="txt-total-label" class="text-[11px] text-slate-400 uppercase font-bold tracking-wider mb-1">Totale Aperture</span>
+                    <span id="total-chests" class="font-heading text-4xl text-yellow-400 gold-glow">0</span>
+                    <button onclick="openCustomSetModal()" class="text-[10px] text-slate-400 hover:text-yellow-400 underline mt-1">
+                        <i class="fa-solid fa-pen-to-square"></i> <span id="txt-edit-manual">Modifica valore</span>
+                    </button>
+                </div>
+
+                <!-- Probabilità cumulata -->
+                <div class="flex flex-col justify-center items-center p-3 rounded-xl bg-slate-950/70 border border-slate-800">
+                    <span id="txt-chance-label" class="text-[11px] text-slate-400 uppercase font-bold tracking-wider mb-1">Probabilità</span>
+                    <span id="drop-chance" class="font-heading text-2xl text-cyan-400 cyan-glow">0.00%</span>
+                    <span class="text-[10px] text-slate-500 mt-1">p = 1 / 137.500</span>
+                </div>
+            </div>
+
+            <!-- Spiegazione Matematica Bernoulli -->
+            <div class="bg-slate-900/80 rounded-xl p-2.5 border border-slate-800/80 mb-3 text-[11px] text-slate-400 leading-tight">
+                <i class="fa-solid fa-calculator text-yellow-500 mr-1"></i>
+                <span id="txt-math-note">Ogni cassa ha 1/137.500 di chance. A 137.500 apri = ~63,21%. Per il 99% servono ~633.200 casse.</span>
+            </div>
+
+            <!-- Progress Bar alla soglia 99% (633.200 casse) -->
+            <div class="pt-1">
+                <div class="flex justify-between text-xs mb-1">
+                    <span id="txt-progress-label" class="text-slate-400">Progresso vero il 99% di certezza:</span>
+                    <span id="progress-percent" class="text-yellow-400 font-bold">0.0%</span>
+                </div>
+                <div class="w-full bg-slate-950 rounded-full h-3 p-0.5 border border-slate-800 overflow-hidden">
+                    <div id="progress-bar" class="bg-gradient-to-r from-yellow-600 via-amber-400 to-yellow-300 h-full rounded-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sezione Carte Elementi -->
+        <div class="space-y-4">
+
+            <!-- 1. CASSE NORMALI (Arancione) -->
+            <div class="chest-card rounded-2xl p-4 border border-orange-500/30 shadow-lg relative">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-xl bg-orange-950/80 border border-orange-500/50 flex items-center justify-center text-orange-500 text-xl shadow-[0_0_12px_rgba(249,115,22,0.3)]">
+                            <i class="fa-solid fa-box-open"></i>
+                        </div>
+                        <div>
+                            <h2 id="name-normal" class="font-bold text-white text-base">Casse Normali</h2>
+                            <p id="desc-normal" class="text-xs text-orange-400/80">Legno / Baule Standard</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span id="count-normal" class="font-heading text-2xl text-orange-400">0</span>
+                    </div>
+                </div>
+                <div class="grid grid-cols-4 gap-2">
+                    <button onclick="addChests('normal', -1)" class="btn-tap bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 rounded-xl border border-slate-700 text-sm">-1</button>
+                    <button onclick="addChests('normal', 1)" class="btn-tap bg-orange-600 hover:bg-orange-500 text-white font-bold py-2.5 rounded-xl shadow-md border border-orange-400/40 text-sm">+1</button>
+                    <button onclick="addChests('normal', 5)" class="btn-tap bg-orange-600/80 hover:bg-orange-500 text-white font-bold py-2.5 rounded-xl border border-orange-400/40 text-sm">+5</button>
+                    <button onclick="addChests('normal', 10)" class="btn-tap bg-orange-700 hover:bg-orange-600 text-white font-bold py-2.5 rounded-xl border border-orange-400/40 text-sm">+10</button>
+                </div>
+            </div>
+
+            <!-- 2. CASSE RARE (Blu) -->
+            <div class="chest-card rounded-2xl p-4 border border-blue-500/30 shadow-lg relative">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-xl bg-blue-950/80 border border-blue-500/50 flex items-center justify-center text-blue-400 text-xl shadow-[0_0_12px_rgba(59,130,246,0.3)]">
+                            <i class="fa-solid fa-gem"></i>
+                        </div>
+                        <div>
+                            <h2 id="name-rare" class="font-bold text-white text-base">Casse Rare</h2>
+                            <p id="desc-rare" class="text-xs text-blue-400/80">Baule del Tesoro Blu</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span id="count-rare" class="font-heading text-2xl text-blue-400">0</span>
+                    </div>
+                </div>
+                <div class="grid grid-cols-4 gap-2">
+                    <button onclick="addChests('rare', -1)" class="btn-tap bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 rounded-xl border border-slate-700 text-sm">-1</button>
+                    <button onclick="addChests('rare', 1)" class="btn-tap bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-xl shadow-md border border-blue-400/40 text-sm">+1</button>
+                    <button onclick="addChests('rare', 5)" class="btn-tap bg-blue-600/80 hover:bg-blue-500 text-white font-bold py-2.5 rounded-xl border border-blue-400/40 text-sm">+5</button>
+                    <button onclick="addChests('rare', 10)" class="btn-tap bg-blue-700 hover:bg-blue-600 text-white font-bold py-2.5 rounded-xl border border-blue-400/40 text-sm">+10</button>
+                </div>
+            </div>
+
+            <!-- 3. CASSE SPIRITELLI (Viola Scuro) -->
+            <div class="chest-card rounded-2xl p-4 border border-purple-500/30 shadow-lg relative">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-xl bg-purple-950/80 border border-purple-500/50 flex items-center justify-center text-purple-400 text-xl shadow-[0_0_12px_rgba(168,85,247,0.3)]">
+                            <i class="fa-solid fa-ghost"></i>
+                        </div>
+                        <div>
+                            <h2 id="name-spirit" class="font-bold text-white text-base">Casse Spiritelli</h2>
+                            <p id="desc-spirit" class="text-xs text-purple-400/80">Sprite Chests Spettrali</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span id="count-spirit" class="font-heading text-2xl text-purple-400">0</span>
+                    </div>
+                </div>
+                <div class="grid grid-cols-4 gap-2">
+                    <button onclick="addChests('spirit', -1)" class="btn-tap bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 rounded-xl border border-slate-700 text-sm">-1</button>
+                    <button onclick="addChests('spirit', 1)" class="btn-tap bg-purple-600 hover:bg-purple-500 text-white font-bold py-2.5 rounded-xl shadow-md border border-purple-400/40 text-sm">+1</button>
+                    <button onclick="addChests('spirit', 5)" class="btn-tap bg-purple-600/80 hover:bg-purple-500 text-white font-bold py-2.5 rounded-xl border border-purple-400/40 text-sm">+5</button>
+                    <button onclick="addChests('spirit', 10)" class="btn-tap bg-purple-700 hover:bg-purple-600 text-white font-bold py-2.5 rounded-xl border border-purple-400/40 text-sm">+10</button>
+                </div>
+            </div>
+
+            <!-- 4. CANNONI (Grigio Acciaio Metallico / Oro) -->
+            <div class="chest-card rounded-2xl p-4 border border-slate-500/30 shadow-lg relative">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-xl bg-slate-900 border border-slate-500/50 flex items-center justify-center text-yellow-400 text-xl shadow-[0_0_10px_rgba(100,116,139,0.3)]">
+                            <i class="fa-solid fa-bomb"></i>
+                        </div>
+                        <div>
+                            <h2 id="name-cannons" class="font-bold text-white text-base">Cannoni</h2>
+                            <p id="desc-cannons" class="text-xs text-slate-400">Cannoni Pirata / Mappa</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span id="count-cannons" class="font-heading text-2xl text-slate-300">0</span>
+                    </div>
+                </div>
+                <div class="grid grid-cols-4 gap-2">
+                    <button onclick="addChests('cannons', -1)" class="btn-tap bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 rounded-xl border border-slate-700 text-sm">-1</button>
+                    <button onclick="addChests('cannons', 1)" class="btn-tap bg-slate-600 hover:bg-slate-500 text-white font-bold py-2.5 rounded-xl shadow-md border border-slate-400/40 text-sm">+1</button>
+                    <button onclick="addChests('cannons', 5)" class="btn-tap bg-slate-600/80 hover:bg-slate-500 text-white font-bold py-2.5 rounded-xl border border-slate-400/40 text-sm">+5</button>
+                    <button onclick="addChests('cannons', 10)" class="btn-tap bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl border border-slate-400/40 text-sm">+10</button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Registro Cronologia e Reset -->
+        <div class="chest-card rounded-2xl p-4 mt-5 border border-slate-800">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="font-bold text-slate-300 text-sm flex items-center">
+                    <i class="fa-solid fa-clock-rotate-left mr-2 text-yellow-500"></i> <span id="txt-history-title">Cronologia Recente</span>
+                </h3>
+                <button onclick="resetData()" class="text-xs text-red-400 hover:text-red-300 flex items-center gap-1 bg-red-950/30 px-2.5 py-1 rounded-md border border-red-900/40">
+                    <i class="fa-solid fa-trash-can"></i> <span id="txt-reset-btn">Azzera tutto</span>
+                </button>
+            </div>
+            <div id="history-log" class="space-y-1.5 max-h-32 overflow-y-auto text-xs text-slate-400 pr-1">
+                <p class="italic text-slate-600 text-center py-2">Nessuna registrazione recente</p>
+            </div>
+            <div class="mt-3 pt-2 border-t border-slate-800/60 flex justify-between items-center text-[10px] text-slate-500">
+                <span>Device ID: <span id="device-id-display" class="font-mono text-slate-400">...</span></span>
+                <span class="text-emerald-400/80"><i class="fa-solid fa-cloud"></i> Salvato in locale</span>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- MODALE: Impostazione Manuale del Valore -->
+    <div id="modal-base" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl p-5 max-w-xs w-full shadow-2xl">
+            <h3 class="font-heading text-xl text-yellow-400 mb-2">Imposta Conteggio Manuale</h3>
+            <p class="text-xs text-slate-300 mb-4">
+                Inserisci il totale di partenza personalizzato:
+            </p>
+            <input type="number" id="input-base" placeholder="Es. 0" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white text-lg font-bold mb-4 focus:outline-none focus:border-yellow-500">
+            <div class="flex space-x-2">
+                <button onclick="closeCustomSetModal()" class="w-1/2 bg-slate-800 hover:bg-slate-700 text-slate-300 py-2 rounded-xl text-sm font-bold">Annulla</button>
+                <button onclick="saveCustomCount()" class="w-1/2 bg-yellow-500 hover:bg-yellow-400 text-slate-950 py-2 rounded-xl text-sm font-bold">Salva</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script di Logica Applicativa e Internazionalizzazione -->
+    <script>
+        const ODDS = 137500; // 1 su 137.500
+        const THRESHOLD_99 = 633200; // ~99% di certezza cumulativa
+
+        // Dizionario Traduzioni
+        const i18n = {
+            it: {
+                title: "GETTONE PIRATA",
+                subtitle: "Tracciamento aperture & Probabilità indipendenti",
+                totalLabel: "Totale Aperture",
+                chanceLabel: "Probabilità",
+                editManual: "Modifica valore",
+                mathNote: "Ogni cassa ha 1/137.500 di chance. A 137.500 apri = ~63,21%. Per il 99% servono ~633.200 casse.",
+                progressLabel: "Progresso verso 99% di certezza:",
+                nameNormal: "Casse Normali",
+                descNormal: "Legno / Baule Standard",
+                nameRare: "Casse Rare",
+                descRare: "Baule del Tesoro Blu",
+                nameSpirit: "Casse Spiritelli",
+                descSpirit: "Sprite Chests Spettrali",
+                nameCannons: "Cannoni",
+                descCannons: "Cannoni Pirata / Mappa",
+                historyTitle: "Cronologia Recente",
+                resetBtn: "Azzera tutto",
+                emptyHistory: "Nessuna registrazione recente",
+                confirmReset: "Sei sicuro di voler azzerare tutti i contatori?"
+            },
+            en: {
+                title: "PIRATE TOKEN",
+                subtitle: "Chest & Cannon Tracking & Independent Probability",
+                totalLabel: "Total Opened",
+                chanceLabel: "Probability",
+                editManual: "Edit count",
+                mathNote: "Each chest has 1/137,500 chance. At 137,500 opens = ~63.21%. For 99% confidence, ~633,200 are needed.",
+                progressLabel: "Progress toward 99% confidence:",
+                nameNormal: "Normal Chests",
+                descNormal: "Wooden / Standard Chest",
+                nameRare: "Rare Chests",
+                descRare: "Blue Treasure Chest",
+                nameSpirit: "Sprite Chests",
+                descSpirit: "Spectral Sprite Chests",
+                nameCannons: "Pirate Cannons",
+                descCannons: "Map Pirate Cannons",
+                historyTitle: "Recent History",
+                resetBtn: "Reset All",
+                emptyHistory: "No recent logs",
+                confirmReset: "Are you sure you want to reset all counters?"
+            },
+            fr: {
+                title: "JETON PIRATE",
+                subtitle: "Suivi des coffres et canons & Probabilités",
+                totalLabel: "Total Ouverts",
+                chanceLabel: "Probabilité",
+                editManual: "Modifier",
+                mathNote: "Chaque coffre a 1/137 500 de chance. À 137 500 = ~63,21%. Pour 99%, ~633 200 coffres requis.",
+                progressLabel: "Progrès vers 99% de certitude:",
+                nameNormal: "Coffres Normaux",
+                descNormal: "Bois / Coffre Standard",
+                nameRare: "Coffres Rares",
+                descRare: "Coffre au Trésor Bleu",
+                nameSpirit: "Coffres Esprits",
+                descSpirit: "Sprite Chests Spectraux",
+                nameCannons: "Canons Pirates",
+                descCannons: "Canons de Carte",
+                historyTitle: "Historique Récents",
+                resetBtn: "Réinitialiser",
+                emptyHistory: "Aucun enregistrement",
+                confirmReset: "Êtes-vous sûr de vouloir réinitialiser tous les compteurs?"
+            },
+            de: {
+                title: "PIRATEN-TOKEN",
+                subtitle: "Truhen & Kanonen Tracker & Wahrscheinlichkeit",
+                totalLabel: "Gesamt Geöffnet",
+                chanceLabel: "Chance",
+                editManual: "Wert ändern",
+                mathNote: "Jede Truhe hat 1/137.500 Chance. Bei 137.500 = ~63.21%. Für 99% werden ~633.200 benötigt.",
+                progressLabel: "Fortschritt zu 99% Sicherheit:",
+                nameNormal: "Normale Truhen",
+                descNormal: "Holz / Standard Truhe",
+                nameRare: "Seltene Truhen",
+                descRare: "Blaue Schatztruhe",
+                nameSpirit: "Geist-Truhen",
+                descSpirit: "Sprite Chests Spektral",
+                nameCannons: "Piratenkanonen",
+                descCannons: "Karten-Kanonen",
+                historyTitle: "Verlauf",
+                resetBtn: "Zurücksetzen",
+                emptyHistory: "Kein Verlauf vorhanden",
+                confirmReset: "Möchten Sie wirklich alle Zähler zurücksetzen?"
+            },
+            es: {
+                title: "FICHA PIRATA",
+                subtitle: "Seguimiento de Cofres y Cañones y Probabilidad",
+                totalLabel: "Total Abiertos",
+                chanceLabel: "Probabilidad",
+                editManual: "Editar valor",
+                mathNote: "Cada cofre tiene 1/137.500 probabilidad. En 137.500 = ~63,21%. Para el 99% se necesitan ~633.200.",
+                progressLabel: "Progreso hacia 99% certeza:",
+                nameNormal: "Cofres Normales",
+                descNormal: "Madera / Cofre Estándar",
+                nameRare: "Cofres Raros",
+                descRare: "Cofre del Tesoro Azul",
+                nameSpirit: "Cofres Espirituales",
+                descSpirit: "Sprite Chests Espectrales",
+                nameCannons: "Cañones Piratas",
+                descCannons: "Cañones del Mapa",
+                historyTitle: "Historial Reciente",
+                resetBtn: "Reiniciar Todo",
+                emptyHistory: "Sin registros recientes",
+                confirmReset: "¿Estás seguro de que deseas reiniciar todos los contadores?"
+            },
+            ru: {
+                title: "ПИРАТСКИЙ ЖЕТОН",
+                subtitle: "Отслеживание сундуков и пушек",
+                totalLabel: "Всего Открыто",
+                chanceLabel: "Вероятность",
+                editManual: "Изменить",
+                mathNote: "Шанс 1/137.500 на сундук. При 137.500 = ~63,21%. Для 99% нужно ~633.200 сундуков.",
+                progressLabel: "Прогресс до 99% вероятности:",
+                nameNormal: "Обычные сундуки",
+                descNormal: "Деревянный сундук",
+                nameRare: "Редкие сундуки",
+                descRare: "Синий сундук сокровищ",
+                nameSpirit: "Духовные сундуки",
+                descSpirit: "Призрачные Sprite Chests",
+                nameCannons: "Пушки",
+                descCannons: "Пиратские пушки",
+                historyTitle: "История",
+                resetBtn: "Сбросить всё",
+                emptyHistory: "Записи отсутствуют",
+                confirmReset: "Вы уверены, что хотите сбросить все счетчики?"
+            }
+        };
+
+        let currentLang = 'it';
+
+        let data = {
+            deviceId: '',
+            normal: 0,
+            rare: 0,
+            spirit: 0,
+            cannons: 0,
+            baseOffset: 0, // Valore iniziale rigidamente a 0
+            history: []
+        };
+
+        window.onload = function() {
+            initDevice();
+            loadSavedData();
+            updateLanguageUI();
+            updateUI();
+        };
+
+        // Genera o recupera l'ID dispositivo unico
+        function initDevice() {
+            let devId = localStorage.getItem('fn_pirate_device_id');
+            if (!devId) {
+                devId = 'DEV-' + Math.random().toString(36).substring(2, 9).toUpperCase();
+                localStorage.setItem('fn_pirate_device_id', devId);
+            }
+            data.deviceId = devId;
+            document.getElementById('device-id-display').innerText = devId;
+        }
+
+        function loadSavedData() {
+            const saved = localStorage.getItem('fortnite_pirate_tracker_v2');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    data = { ...data, ...parsed };
+                } catch(e) {
+                    console.error("Errore caricamento dati", e);
+                }
+            }
+            const savedLang = localStorage.getItem('fn_pirate_lang');
+            if (savedLang && i18n[savedLang]) {
+                currentLang = savedLang;
+                document.getElementById('lang-select').value = currentLang;
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem('fortnite_pirate_tracker_v2', JSON.stringify(data));
+        }
+
+        function changeLanguage(lang) {
+            if (!i18n[lang]) return;
+            currentLang = lang;
+            localStorage.setItem('fn_pirate_lang', lang);
+            updateLanguageUI();
+            updateUI();
+        }
+
+        function updateLanguageUI() {
+            const t = i18n[currentLang];
+            document.getElementById('txt-title').innerText = t.title;
+            document.getElementById('txt-subtitle').innerText = t.subtitle;
+            document.getElementById('txt-total-label').innerText = t.totalLabel;
+            document.getElementById('txt-chance-label').innerText = t.chanceLabel;
+            document.getElementById('txt-edit-manual').innerText = t.editManual;
+            document.getElementById('txt-math-note').innerText = t.mathNote;
+            document.getElementById('txt-progress-label').innerText = t.progressLabel;
+
+            document.getElementById('name-normal').innerText = t.nameNormal;
+            document.getElementById('desc-normal').innerText = t.descNormal;
+            document.getElementById('name-rare').innerText = t.nameRare;
+            document.getElementById('desc-rare').innerText = t.descRare;
+            document.getElementById('name-spirit').innerText = t.nameSpirit;
+            document.getElementById('desc-spirit').innerText = t.descSpirit;
+            document.getElementById('name-cannons').innerText = t.nameCannons;
+            document.getElementById('desc-cannons').innerText = t.descCannons;
+
+            document.getElementById('txt-history-title').innerText = t.historyTitle;
+            document.getElementById('txt-reset-btn').innerText = t.resetBtn;
+        }
+
+        function addChests(type, amount) {
+            if (data[type] + amount < 0) return;
+
+            data[type] += amount;
+
+            const names = {
+                normal: i18n[currentLang].nameNormal,
+                rare: i18n[currentLang].nameRare,
+                spirit: i18n[currentLang].nameSpirit,
+                cannons: i18n[currentLang].nameCannons
+            };
+
+            const sign = amount > 0 ? '+' : '';
+            data.history.unshift({
+                text: `${names[type]}: ${sign}${amount}`,
+                time: getCurrentTime()
+            });
+
+            if (data.history.length > 20) data.history.pop();
+
+            if (navigator.vibrate) navigator.vibrate(35);
+
+            saveData();
+            updateUI();
+        }
+
+        function getTotal() {
+            return (data.baseOffset || 0) + data.normal + data.rare + data.spirit + data.cannons;
+        }
+
+        function updateUI() {
+            document.getElementById('count-normal').innerText = data.normal;
+            document.getElementById('count-rare').innerText = data.rare;
+            document.getElementById('count-spirit').innerText = data.spirit;
+            document.getElementById('count-cannons').innerText = data.cannons;
+
+            const total = getTotal();
+            document.getElementById('total-chests').innerText = total.toLocaleString();
+
+            // Formulate Probabilità Cumulata Indipendente (Bernoulli Trial): P = 1 - (1 - p)^N
+            const probability = (1 - Math.pow(1 - (1 / ODDS), total)) * 100;
+            
+            if (probability === 0) {
+                document.getElementById('drop-chance').innerText = "0.00%";
+            } else if (probability < 0.01) {
+                document.getElementById('drop-chance').innerText = probability.toFixed(4) + '%';
+            } else {
+                document.getElementById('drop-chance').innerText = probability.toFixed(2) + '%';
+            }
+
+            // Avanzamento verso la soglia del 99% di certezza (633.200 casse)
+            const progress = Math.min(100, ((total / THRESHOLD_99) * 100)).toFixed(1);
+            document.getElementById('progress-bar').style.width = `${progress}%`;
+            document.getElementById('progress-percent').innerText = `${progress}%`;
+
+            // Aggiorna Cronologia
+            const historyContainer = document.getElementById('history-log');
+            if (data.history.length === 0) {
+                historyContainer.innerHTML = `<p class="italic text-slate-600 text-center py-2">${i18n[currentLang].emptyHistory}</p>`;
+            } else {
+                historyContainer.innerHTML = data.history.map(item => `
+                    <div class="flex justify-between items-center py-1 border-b border-slate-800/40">
+                        <span class="text-slate-300 font-medium">${item.text}</span>
+                        <span class="text-[10px] text-slate-500">${item.time}</span>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function openCustomSetModal() {
+            document.getElementById('input-base').value = data.baseOffset || 0;
+            document.getElementById('modal-base').classList.remove('hidden');
+        }
+
+        function closeCustomSetModal() {
+            document.getElementById('modal-base').classList.add('hidden');
+        }
+
+        function saveCustomCount() {
+            const val = parseInt(document.getElementById('input-base').value) || 0;
+            data.baseOffset = Math.max(0, val);
+            data.history.unshift({
+                text: `Base: ${data.baseOffset}`,
+                time: getCurrentTime()
+            });
+            saveData();
+            updateUI();
+            closeCustomSetModal();
+        }
+
+        function resetData() {
+            if (confirm(i18n[currentLang].confirmReset)) {
+                data.normal = 0;
+                data.rare = 0;
+                data.spirit = 0;
+                data.cannons = 0;
+                data.baseOffset = 0;
+                data.history = [];
+                saveData();
+                updateUI();
+            }
+        }
+
+        function getCurrentTime() {
+            const now = new Date();
+            return now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        }
+    </script>
+</body>
+</html>
